@@ -256,6 +256,22 @@ throwTypeError(void *ctx, Runtime *runtime, NativeArgs) {
   return runtime->raiseTypeError(TypeErrorMessage[kind]);
 }
 
+
+#ifdef HERMES_ENABLE_FUZZILLI
+CallResult<HermesValue> fuzzilli(void *, Runtime *, NativeArgs args) {
+  if (args.getArgCount() == 1 && args.getArg(0).isString()) {
+    if (args.getArg(0).getString()->equals("FuzzilliCrash1")){
+      auto crashPtr = new int;
+      delete crashPtr;
+      *crashPtr = 2;
+    }
+    else if (args.getArg(0).getString()->equals("FuzzilliCrash2"))
+      assert(0);
+  }
+  return HermesValue::encodeUndefinedValue();
+}
+#endif
+
 // NOTE: when declaring more global symbols, don't forget to update
 // "Libhermes.h".
 void initGlobalObject(Runtime *runtime, const JSLibFlags &jsLibFlags) {
@@ -764,6 +780,14 @@ void initGlobalObject(Runtime *runtime, const JSLibFlags &jsLibFlags) {
         intl::createIntlObject(runtime)));
   }
 #endif
+
+
+#ifdef HERMES_ENABLE_FUZZILLI
+  defineGlobalFunc(Predefined::getSymbolID(Predefined::fuzzilli), fuzzilli, 1);
+  printf("1");
+#endif
+  printf("2");
+
 }
 
 } // namespace vm

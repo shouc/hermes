@@ -2,6 +2,7 @@
 #
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
+add_definitions(-DHERMES_ENABLE_FUZZILLI)
 
 set(source_files
   ArrayStorage.cpp
@@ -210,6 +211,10 @@ if(HERMESVM_JIT)
     MC
     MCParser
   )
+endif()
+
+if(HERMES_ENABLE_FUZZILLI)
+  add_definitions(-DHERMES_ENABLE_FUZZILLI)
 endif()
 
 add_hermes_library(hermesVMRuntime STATIC ${source_files}
