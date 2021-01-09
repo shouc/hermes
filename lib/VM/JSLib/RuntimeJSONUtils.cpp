@@ -273,11 +273,11 @@ CallResult<HermesValue> RuntimeJSONParser::parse() {
         "Unexpected token: ", lexer_.getCurToken()->getFirstChar());
   }
 
-  if (reviver_.get()) {
-    if ((parRes = revive(runtime_->makeHandle(*parRes))) ==
-        ExecutionStatus::EXCEPTION)
-      return ExecutionStatus::EXCEPTION;
-  }
+//  if (reviver_.get()) {
+//    if ((parRes = revive(runtime_->makeHandle(*parRes))) ==
+//        ExecutionStatus::EXCEPTION)
+//      return ExecutionStatus::EXCEPTION;
+//  }
   return parRes;
 }
 

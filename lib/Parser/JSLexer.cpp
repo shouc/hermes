@@ -30,8 +30,8 @@ inline bool matchUnicodeLineTerminatorOffset1(const char *curCharPtr_) {
   // Line separator \u2028 UTF8 encoded is      : e2 80 a8
   // Paragraph separator \u2029 UTF8 encoded is: e2 80 a9
   return (unsigned char)curCharPtr_[1] == 0x80 &&
-      ((unsigned char)curCharPtr_[2] == 0xa8 ||
-       (unsigned char)curCharPtr_[2] == 0xa9);
+         ((unsigned char)curCharPtr_[2] == 0xa8 ||
+          (unsigned char)curCharPtr_[2] == 0xa9);
 }
 } // namespace
 
@@ -174,8 +174,8 @@ const Token *JSLexer::advance(GrammarContext grammarContext) {
           token_.setEof();
         } else {
           if (!error(
-                  token_.getStartLoc(),
-                  "unrecognized Unicode character \\u0000")) {
+              token_.getStartLoc(),
+              "unrecognized Unicode character \\u0000")) {
             token_.setEof();
           } else {
             ++curCharPtr_;
@@ -195,7 +195,7 @@ const Token *JSLexer::advance(GrammarContext grammarContext) {
       PUNC_L1_1('~', TokenKind::tilde);
       PUNC_L1_1(':', TokenKind::colon);
 
-      // { {|
+        // { {|
       case '{':
         token_.setStart(curCharPtr_);
         if (HERMES_PARSE_FLOW &&
@@ -209,7 +209,7 @@ const Token *JSLexer::advance(GrammarContext grammarContext) {
         }
         break;
 
-      // = => == ===
+        // = => == ===
       case '=':
         token_.setStart(curCharPtr_);
         if (curCharPtr_[1] == '>') {
@@ -227,13 +227,13 @@ const Token *JSLexer::advance(GrammarContext grammarContext) {
         }
         break;
 
-      // ! != !==
+        // ! != !==
       PUNC_L3_3('!', TokenKind::exclaim, '=', TokenKind::exclaimequal, '=', TokenKind::exclaimequalequal);
 
-      // + ++ +=
-      // - -- -=
-      // & && &=
-      // | || |=
+        // + ++ +=
+        // - -- -=
+        // & && &=
+        // | || |=
       PUNC_L2_3('+', TokenKind::plus,  '+', TokenKind::plusplus,   '=', TokenKind::plusequal);
       PUNC_L2_3('-', TokenKind::minus, '-', TokenKind::minusminus, '=', TokenKind::minusequal);
 
@@ -282,7 +282,7 @@ const Token *JSLexer::advance(GrammarContext grammarContext) {
         }
         break;
 
-      // ? ?? ?.
+        // ? ?? ?.
       case '?':
         token_.setStart(curCharPtr_);
         if (HERMES_PARSE_FLOW &&
@@ -310,7 +310,7 @@ const Token *JSLexer::advance(GrammarContext grammarContext) {
         }
         break;
 
-      // * *= ** **=
+        // * *= ** **=
       case '*':
         token_.setStart(curCharPtr_);
         if (curCharPtr_[1] == '=') {
@@ -328,14 +328,14 @@ const Token *JSLexer::advance(GrammarContext grammarContext) {
         }
         break;
 
-      // * *=
-      // ^ ^=
-      // / /=
+        // * *=
+        // ^ ^=
+        // / /=
       PUNC_L2_2('^', TokenKind::caret, '=', TokenKind::caretequal);
 
-      // % %=
+        // % %=
       case '%':
-      token_.setStart(curCharPtr_);
+        token_.setStart(curCharPtr_);
         if (HERMES_PARSE_FLOW &&
             LLVM_UNLIKELY(grammarContext == GrammarContext::Flow) &&
             curCharPtr_ + 7 <= bufferEnd_ &&
@@ -359,8 +359,8 @@ const Token *JSLexer::advance(GrammarContext grammarContext) {
         newLineBeforeCurrentToken_ = true;
         continue;
 
-      // Line separator \u2028 UTF8 encoded is      : e2 80 a8
-      // Paragraph separator \u2029 UTF8 encoded is : e2 80 a9
+        // Line separator \u2028 UTF8 encoded is      : e2 80 a8
+        // Paragraph separator \u2029 UTF8 encoded is : e2 80 a9
       case UTF8_LINE_TERMINATOR_CHAR0:
         if (matchUnicodeLineTerminatorOffset1(curCharPtr_)) {
           curCharPtr_ += 3;
@@ -383,7 +383,7 @@ const Token *JSLexer::advance(GrammarContext grammarContext) {
         while (*curCharPtr_ == '\t' || *curCharPtr_ == ' ');
         continue;
 
-      // No-break space \u00A0 is UTF8 encoded as: c2 a0
+        // No-break space \u00A0 is UTF8 encoded as: c2 a0
       case 0xc2:
         if ((unsigned char)curCharPtr_[1] == 0xa0) {
           curCharPtr_ += 2;
@@ -392,7 +392,7 @@ const Token *JSLexer::advance(GrammarContext grammarContext) {
           goto default_label;
         }
 
-      // Byte-order mark \uFEFF is encoded as: ef bb bf
+        // Byte-order mark \uFEFF is encoded as: ef bb bf
       case 0xef:
         if ((unsigned char)curCharPtr_[1] == 0xbb &&
             (unsigned char)curCharPtr_[2] == 0xbf) {
@@ -406,7 +406,7 @@ const Token *JSLexer::advance(GrammarContext grammarContext) {
         if (curCharPtr_[1] == '/') { // Line comment?
           if (LLVM_UNLIKELY(curCharPtr_[2] == '#')) {
             if (auto sourceMappingUrl =
-                    tryReadMagicComment("sourceMappingURL", curCharPtr_)) {
+                tryReadMagicComment("sourceMappingURL", curCharPtr_)) {
               sm_.setSourceMappingUrl(bufId_, sourceMappingUrl.getValue());
             } else if (
                 auto sourceUrl =
@@ -435,7 +435,7 @@ const Token *JSLexer::advance(GrammarContext grammarContext) {
 
       case '#':
         if (LLVM_UNLIKELY(
-                curCharPtr_ == bufferStart_ && curCharPtr_[1] == '!')) {
+            curCharPtr_ == bufferStart_ && curCharPtr_[1] == '!')) {
           // #! (hashbang) at the very start of the buffer.
           curCharPtr_ = skipLineComment(curCharPtr_);
           continue;
@@ -445,7 +445,7 @@ const Token *JSLexer::advance(GrammarContext grammarContext) {
         }
         break;
 
-      // <  <= << <<=
+        // <  <= << <<=
       case '<':
         token_.setStart(curCharPtr_);
         if (HERMES_PARSE_FLOW &&
@@ -469,7 +469,7 @@ const Token *JSLexer::advance(GrammarContext grammarContext) {
         }
         break;
 
-      // > >= >> >>> >>= >>>=
+        // > >= >> >>> >>= >>>=
       case '>':
         token_.setStart(curCharPtr_);
         if ((HERMES_PARSE_FLOW &&
@@ -561,7 +561,7 @@ const Token *JSLexer::advance(GrammarContext grammarContext) {
           errorRange(
               token_.getStartLoc(),
               "Unicode escape \\u" + Twine::utohexstr(cp) +
-                  " is not a valid identifier start");
+              " is not a valid identifier start");
           continue;
         } else {
           appendUnicodeToStorage(cp);
@@ -811,8 +811,8 @@ bool JSLexer::isCurrentTokenADirective() {
       case '\n':
         return true;
 
-      // Line separator \u2028 UTF8 encoded is      : e2 80 a8
-      // Paragraph separator \u2029 UTF8 encoded is : e2 80 a9
+        // Line separator \u2028 UTF8 encoded is      : e2 80 a8
+        // Paragraph separator \u2029 UTF8 encoded is : e2 80 a9
       case UTF8_LINE_TERMINATOR_CHAR0:
         if (matchUnicodeLineTerminatorOffset1(ptr))
           return true;
@@ -832,7 +832,7 @@ bool JSLexer::isCurrentTokenADirective() {
         while (*ptr == '\t' || *ptr == ' ');
         continue;
 
-      // No-break space \u00A0 is UTF8 encoded as: c2 a0
+        // No-break space \u00A0 is UTF8 encoded as: c2 a0
       case 0xc2:
         if ((unsigned char)ptr[1] == 0xa0) {
           ptr += 2;
@@ -841,7 +841,7 @@ bool JSLexer::isCurrentTokenADirective() {
           goto default_label;
         }
 
-      // Byte-order mark \uFEFF is encoded as: ef bb bf
+        // Byte-order mark \uFEFF is encoded as: ef bb bf
       case 0xef:
         if ((unsigned char)ptr[1] == 0xbb && (unsigned char)ptr[2] == 0xbf) {
           ptr += 3;
@@ -862,8 +862,8 @@ bool JSLexer::isCurrentTokenADirective() {
           return false;
         }
 
-      // Handle all other characters: if it is a unicode space, skip it.
-      // Otherwise we have failed.
+        // Handle all other characters: if it is a unicode space, skip it.
+        // Otherwise we have failed.
       default_label:
       default: {
         if (hermes::isUTF8Start(*ptr)) {
@@ -1027,7 +1027,7 @@ bool JSLexer::consumeIdentifierStart() {
       errorRange(
           startLoc,
           "Unicode escape \\u" + Twine::utohexstr(cp) +
-              "is not a valid identifier start");
+          "is not a valid identifier start");
     } else {
       appendUnicodeToStorage(cp);
     }
@@ -1085,7 +1085,7 @@ void JSLexer::consumeIdentifierParts() {
         errorRange(
             startLoc,
             "Unicode escape \\u" + Twine::utohexstr(cp) +
-                "is not a valid identifier codepoint");
+            "is not a valid identifier codepoint");
       } else {
         appendUnicodeToStorage(cp);
       }
@@ -1099,8 +1099,8 @@ unsigned char JSLexer::consumeOctal(unsigned maxLen) {
 
   if (strictMode_) {
     if (!error(
-            SMLoc::getFromPointer(curCharPtr_ - 1),
-            "octals not allowed in strict mode")) {
+        SMLoc::getFromPointer(curCharPtr_ - 1),
+        "octals not allowed in strict mode")) {
       return 0;
     }
   }
@@ -1173,8 +1173,8 @@ llvh::Optional<uint32_t> JSLexer::consumeBracedCodePoint(bool errorOnFail) {
       // Invalid character, set the failed flag and continue.
       if (!failed && errorOnFail) {
         if (!error(
-                SMLoc::getFromPointer(curCharPtr_),
-                "invalid character in unicode codepoint escape")) {
+            SMLoc::getFromPointer(curCharPtr_),
+            "invalid character in unicode codepoint escape")) {
           return llvh::None;
         }
       }
@@ -1186,8 +1186,8 @@ llvh::Optional<uint32_t> JSLexer::consumeBracedCodePoint(bool errorOnFail) {
       // Number grew too big, set the failed flag and continue.
       if (!failed && errorOnFail) {
         if (!error(
-                SMLoc::getFromPointer(start),
-                "unicode codepoint escape is too large")) {
+            SMLoc::getFromPointer(start),
+            "unicode codepoint escape is too large")) {
           return llvh::None;
         }
       }
@@ -1201,7 +1201,7 @@ llvh::Optional<uint32_t> JSLexer::consumeBracedCodePoint(bool errorOnFail) {
   if (curCharPtr_ == start) {
     if (!failed && errorOnFail) {
       if (!error(
-              SMLoc::getFromPointer(start), "empty unicode codepoint escape")) {
+          SMLoc::getFromPointer(start), "empty unicode codepoint escape")) {
         return llvh::None;
       }
     }
@@ -1239,8 +1239,8 @@ const char *JSLexer::skipLineComment(const char *start) {
         newLineBeforeCurrentToken_ = true;
         goto endLoop;
 
-      // Line separator \u2028 UTF8 encoded is      : e2 80 a8
-      // Paragraph separator \u2029 UTF8 encoded is: e2 80 a9
+        // Line separator \u2028 UTF8 encoded is      : e2 80 a8
+        // Paragraph separator \u2029 UTF8 encoded is: e2 80 a9
       case UTF8_LINE_TERMINATOR_CHAR0:
         if (matchUnicodeLineTerminatorOffset1(cur)) {
           lineCommentEnd = SMLoc::getFromPointer(cur);
@@ -1260,7 +1260,7 @@ const char *JSLexer::skipLineComment(const char *start) {
         break;
     }
   }
-endLoop:
+  endLoop:
 
   if (storeComments_) {
     commentStorage_.emplace_back(
@@ -1282,7 +1282,7 @@ const char *JSLexer::skipBlockComment(const char *start) {
       case 0:
         if (cur == bufferEnd_) {
           error(SMLoc::getFromPointer(cur), "non-terminated block comment");
-          sm_.note(blockCommentStart, "comment started here");
+          //sm_.note(blockCommentStart, "comment started here");
           goto endLoop;
         } else {
           ++cur;
@@ -1295,8 +1295,8 @@ const char *JSLexer::skipBlockComment(const char *start) {
         newLineBeforeCurrentToken_ = true;
         break;
 
-      // Line separator \u2028 UTF8 encoded is      : e2 80 a8
-      // Paragraph separator \u2029 UTF8 encoded is: e2 80 a9
+        // Line separator \u2028 UTF8 encoded is      : e2 80 a8
+        // Paragraph separator \u2029 UTF8 encoded is: e2 80 a9
       case UTF8_LINE_TERMINATOR_CHAR0:
         if (matchUnicodeLineTerminatorOffset1(cur)) {
           cur += 3;
@@ -1322,7 +1322,7 @@ const char *JSLexer::skipBlockComment(const char *start) {
         break;
     }
   }
-endLoop:
+  endLoop:
 
   if (storeComments_) {
     commentStorage_.emplace_back(
@@ -1344,7 +1344,7 @@ llvh::Optional<StringRef> JSLexer::tryReadMagicComment(
 
   // Syntax is //# name=value
   auto isMatch = str.consume_front("//# ") && str.consume_front(name) &&
-      str.consume_front("=");
+                 str.consume_front("=");
   if (!isMatch) {
     return llvh::None;
   }
@@ -1418,7 +1418,7 @@ void JSLexer::scanNumber(GrammarContext grammarContext) {
 
   goto end;
 
-fraction:
+  fraction:
   // We arrive here after we have consumed the decimal dot ".".
   //
   real = true;
@@ -1434,7 +1434,7 @@ fraction:
     goto end;
   }
 
-exponent:
+  exponent:
   // We arrive here after we have consumed the exponent character 'e' or 'E'.
   //
   real = true;
@@ -1449,7 +1449,7 @@ exponent:
     ok = false;
   }
 
-end:
+  end:
   // We arrive here after we have consumed all we can from the number. Now,
   // as per the spec, we consume a sequence of identifier characters if they
   // directly, which means the number is invalid though.
@@ -1518,8 +1518,8 @@ end:
         (strictMode_ || grammarContext == GrammarContext::Flow) &&
         curCharPtr_ - start > 1) {
       if (!errorRange(
-              token_.getStartLoc(),
-              "Octal literals must use '0o' in strict mode")) {
+          token_.getStartLoc(),
+          "Octal literals must use '0o' in strict mode")) {
         val = std::numeric_limits<double>::quiet_NaN();
         goto done;
       }
@@ -1540,11 +1540,11 @@ end:
         // contains '8' or '9' we interpret it as decimal.
         for (auto *scanPtr = start; scanPtr < curCharPtr_; ++scanPtr) {
           if (LLVM_UNLIKELY(*scanPtr >= '8') && LLVM_LIKELY(*scanPtr != '_')) {
-            sm_.warning(
-                SMRange(
-                    token_.getStartLoc(), SMLoc::getFromPointer(curCharPtr_)),
-                "Numeric literal starts with 0 but contains an 8 or 9 digit. "
-                "Interpreting as decimal (not octal).");
+//            sm_.warning(
+//                SMRange(
+//                    token_.getStartLoc(), SMLoc::getFromPointer(curCharPtr_)),
+//                "Numeric literal starts with 0 but contains an 8 or 9 digit. "
+//                "Interpreting as decimal (not octal).");
             radix = 10;
             break;
           }
@@ -1568,7 +1568,7 @@ end:
     }
   }
 
-done:
+  done:
   token_.setNumericLiteral(val);
 }
 
@@ -1736,7 +1736,7 @@ void JSLexer::scanString() {
         case '\0': // EOF?
           if (curCharPtr_ == bufferEnd_) { // eof?
             error(SMLoc::getFromPointer(curCharPtr_), "non-terminated string");
-            sm_.note(token_.getStartLoc(), "string started here");
+            //sm_.note(token_.getStartLoc(), "string started here");
             goto breakLoop;
           } else {
             tmpStorage_.push_back((unsigned char)*curCharPtr_++);
@@ -1775,7 +1775,7 @@ void JSLexer::scanString() {
           appendUnicodeToStorage(consumeUnicodeEscape());
           break;
 
-        // Escaped line terminator. We just need to skip it.
+          // Escaped line terminator. We just need to skip it.
         case '\n':
           ++curCharPtr_;
           break;
@@ -1804,7 +1804,7 @@ void JSLexer::scanString() {
         tmpStorage_.push_back(*curCharPtr_++);
       } else {
         error(SMLoc::getFromPointer(curCharPtr_), "non-terminated string");
-        sm_.note(token_.getStartLoc(), "string started here");
+        //sm_.note(token_.getStartLoc(), "string started here");
         break;
       }
 #if HERMES_PARSE_JSX
@@ -1818,7 +1818,7 @@ void JSLexer::scanString() {
 #endif
     } else if (LLVM_UNLIKELY(*curCharPtr_ == 0 && curCharPtr_ == bufferEnd_)) {
       error(SMLoc::getFromPointer(curCharPtr_), "non-terminated string");
-      sm_.note(token_.getStartLoc(), "string started here");
+      //sm_.note(token_.getStartLoc(), "string started here");
       break;
     } else {
       if (LLVM_UNLIKELY(isUTF8Start(*curCharPtr_))) {
@@ -1830,7 +1830,7 @@ void JSLexer::scanString() {
       }
     }
   }
-breakLoop:
+  breakLoop:
   token_.setStringLiteral(getStringLiteral(tmpStorage_.str()), escapes);
 }
 
@@ -1924,7 +1924,7 @@ void JSLexer::scanTemplateLiteral() {
             error(
                 SMLoc::getFromPointer(curCharPtr_),
                 "non-terminated template literal");
-            sm_.note(token_.getStartLoc(), "template literal started here");
+            //sm_.note(token_.getStartLoc(), "template literal started here");
             goto breakLoop;
           } else {
             tmpStorage_.push_back((unsigned char)*curCharPtr_++);
@@ -1988,8 +1988,8 @@ void JSLexer::scanTemplateLiteral() {
           break;
         }
 
-        // Escaped line terminator. We just need to skip it, because it was
-        // added to the raw storage at the start of the switch statement.
+          // Escaped line terminator. We just need to skip it, because it was
+          // added to the raw storage at the start of the switch statement.
         case '\n':
           ++curCharPtr_;
           break;
@@ -2034,7 +2034,7 @@ void JSLexer::scanTemplateLiteral() {
       error(
           SMLoc::getFromPointer(curCharPtr_),
           "non-terminated template literal");
-      sm_.note(token_.getStartLoc(), "template literal started here");
+      //sm_.note(token_.getStartLoc(), "template literal started here");
       break;
     } else if (*curCharPtr_ == '\r') {
       // The TV of LineTerminatorSequence is the TRV of LineTerminatorSequence.
@@ -2060,7 +2060,7 @@ void JSLexer::scanTemplateLiteral() {
       }
     }
   }
-breakLoop:
+  breakLoop:
   // If the template literal is tagged and contains invalid escapes, then cooked
   // should be null because there is no way to cook it, per the ESTree 2018
   // spec.
@@ -2148,7 +2148,7 @@ void JSLexer::scanRegExp() {
         error(
             SMLoc::getFromPointer(curCharPtr_),
             "non-terminated regular expression literal");
-        sm_.note(startLoc, "regular expression started here");
+        //sm_.note(startLoc, "regular expression started here");
         goto exitLoop;
     }
 
@@ -2157,7 +2157,7 @@ void JSLexer::scanRegExp() {
     else
       tmpStorage_.push_back((unsigned char)*curCharPtr_++);
   }
-exitLoop:
+  exitLoop:
   UniqueString *body = getStringLiteral(tmpStorage_.str());
 
   // Scan the flags. We must not interpret escape sequences.
@@ -2204,7 +2204,7 @@ UniqueString *JSLexer::convertSurrogatesInString(StringRef str) {
 }
 
 bool JSLexer::error(llvh::SMLoc loc, const llvh::Twine &msg) {
-  sm_.error(loc, msg, Subsystem::Lexer);
+//  sm_.error(loc, msg, Subsystem::Lexer);
   if (!sm_.isErrorLimitReached())
     return true;
   forceEOF();
@@ -2212,7 +2212,7 @@ bool JSLexer::error(llvh::SMLoc loc, const llvh::Twine &msg) {
 }
 
 bool JSLexer::error(llvh::SMRange range, const llvh::Twine &msg) {
-  sm_.error(range, msg, Subsystem::Lexer);
+//  sm_.error(range, msg, Subsystem::Lexer);
   if (!sm_.isErrorLimitReached())
     return true;
   forceEOF();
@@ -2223,7 +2223,7 @@ bool JSLexer::error(
     llvh::SMLoc loc,
     llvh::SMRange range,
     const llvh::Twine &msg) {
-  sm_.error(loc, range, msg, Subsystem::Lexer);
+//  sm_.error(loc, range, msg, Subsystem::Lexer);
   if (!sm_.isErrorLimitReached())
     return true;
   forceEOF();

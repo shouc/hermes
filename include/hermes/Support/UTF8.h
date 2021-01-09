@@ -73,14 +73,14 @@ uint32_t _decodeUTF8SlowPath(const char *&from, F error) {
     uint32_t ch1 = (uint32_t)from[1];
     if (LLVM_UNLIKELY((ch1 & 0xC0) != 0x80)) {
       from += 1;
-      error("Invalid UTF-8 continuation byte");
+//      error("Invalid UTF-8 continuation byte");
       return UNICODE_REPLACEMENT_CHARACTER;
     }
 
     from += 2;
     result = ((ch & 0x1F) << 6) | (ch1 & 0x3F);
     if (LLVM_UNLIKELY(result <= 0x7F)) {
-      error("Non-canonical UTF-8 encoding");
+//      error("Non-canonical UTF-8 encoding");
       return UNICODE_REPLACEMENT_CHARACTER;
     }
 
@@ -88,25 +88,25 @@ uint32_t _decodeUTF8SlowPath(const char *&from, F error) {
     uint32_t ch1 = (uint32_t)from[1];
     if (LLVM_UNLIKELY((ch1 & 0x40) != 0 || (ch1 & 0x80) == 0)) {
       from += 1;
-      error("Invalid UTF-8 continuation byte");
+//      error("Invalid UTF-8 continuation byte");
       return UNICODE_REPLACEMENT_CHARACTER;
     }
     uint32_t ch2 = (uint32_t)from[2];
     if (LLVM_UNLIKELY((ch2 & 0x40) != 0 || (ch2 & 0x80) == 0)) {
       from += 2;
-      error("Invalid UTF-8 continuation byte");
+//      error("Invalid UTF-8 continuation byte");
       return UNICODE_REPLACEMENT_CHARACTER;
     }
     from += 3;
     result = ((ch & 0x0F) << 12) | ((ch1 & 0x3F) << 6) | (ch2 & 0x3F);
     if (LLVM_UNLIKELY(result <= 0x7FF)) {
-      error("Non-canonical UTF-8 encoding");
+//      error("Non-canonical UTF-8 encoding");
       return UNICODE_REPLACEMENT_CHARACTER;
     }
     if (LLVM_UNLIKELY(
             result >= UNICODE_SURROGATE_FIRST &&
             result <= UNICODE_SURROGATE_LAST && !allowSurrogates)) {
-      error("Invalid UTF-8 code point 0x" + llvh::Twine::utohexstr(result));
+//      error("Invalid UTF-8 code point 0x" + llvh::Twine::utohexstr(result));
       return UNICODE_REPLACEMENT_CHARACTER;
     }
 
@@ -114,36 +114,36 @@ uint32_t _decodeUTF8SlowPath(const char *&from, F error) {
     uint32_t ch1 = (uint32_t)from[1];
     if (LLVM_UNLIKELY((ch1 & 0x40) != 0 || (ch1 & 0x80) == 0)) {
       from += 1;
-      error("Invalid UTF-8 continuation byte");
+//      error("Invalid UTF-8 continuation byte");
       return UNICODE_REPLACEMENT_CHARACTER;
     }
     uint32_t ch2 = (uint32_t)from[2];
     if (LLVM_UNLIKELY((ch2 & 0x40) != 0 || (ch2 & 0x80) == 0)) {
       from += 2;
-      error("Invalid UTF-8 continuation byte");
+//      error("Invalid UTF-8 continuation byte");
       return UNICODE_REPLACEMENT_CHARACTER;
     }
     uint32_t ch3 = (uint32_t)from[3];
     if (LLVM_UNLIKELY((ch3 & 0x40) != 0 || (ch3 & 0x80) == 0)) {
       from += 3;
-      error("Invalid UTF-8 continuation byte");
+//      error("Invalid UTF-8 continuation byte");
       return UNICODE_REPLACEMENT_CHARACTER;
     }
     from += 4;
     result = ((ch & 0x07) << 18) | ((ch1 & 0x3F) << 12) | ((ch2 & 0x3F) << 6) |
         (ch3 & 0x3F);
     if (LLVM_UNLIKELY(result <= 0xFFFF)) {
-      error("Non-canonical UTF-8 encoding");
+//      error("Non-canonical UTF-8 encoding");
       return UNICODE_REPLACEMENT_CHARACTER;
     }
     if (LLVM_UNLIKELY(result > UNICODE_MAX_VALUE)) {
-      error("Invalid UTF-8 code point 0x" + llvh::Twine::utohexstr(result));
+//      error("Invalid UTF-8 code point 0x" + llvh::Twine::utohexstr(result));
       return UNICODE_REPLACEMENT_CHARACTER;
     }
 
   } else {
     from += 1;
-    error("Invalid UTF-8 lead byte 0x" + llvh::Twine::utohexstr((uint8_t)ch));
+//    error("Invalid UTF-8 lead byte 0x" + llvh::Twine::utohexstr((uint8_t)ch));
     return UNICODE_REPLACEMENT_CHARACTER;
   }
 

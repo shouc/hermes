@@ -213,6 +213,8 @@ int main(int argc, char **argv) {
   if (cl::InputFilenames.size() == 0) {
     return repl(getReplRuntimeConfig());
   }
+  if (cl::InputFilenames.size() == 1 && cl::InputFilenames[0] == "repr") {
+  }
 
   // Tell compiler to emit async break check if time-limit feature is enabled
   // so that user can turn on this feature with single ExecutionTimeLimit

@@ -261,9 +261,7 @@ throwTypeError(void *ctx, Runtime *runtime, NativeArgs) {
 CallResult<HermesValue> fuzzilli(void *, Runtime *, NativeArgs args) {
   if (args.getArgCount() == 1 && args.getArg(0).isString()) {
     if (args.getArg(0).getString()->equals("FuzzilliCrash1")){
-      auto crashPtr = new int;
-      delete crashPtr;
-      *crashPtr = 2;
+      *((int*)0x41414141) = 0x1337;
     }
     else if (args.getArg(0).getString()->equals("FuzzilliCrash2"))
       assert(0);

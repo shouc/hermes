@@ -22,14 +22,15 @@ using facebook::jsi::Value;
 //
 // BEGIN FUZZING CODE
 //
-#include <cerrno>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <cerrno>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <fstream>
 #include <string>
 #define REPRL_CRFD 100
 #define REPRL_CWFD 101
@@ -108,12 +109,29 @@ extern "C" void __sanitizer_cov_trace_pc_guard(uint32_t *guard) {
 //
 // END FUZZING CODE
 //
+const std::string CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+#include <random>
 
+std::string generateUUID(){
+  static std::random_device dev;
+  static std::mt19937 rng(dev());
+
+  std::uniform_int_distribution<int> dist(0, 15);
+
+  const char *v = "0123456789abcdef";
+  const bool dash[] = { 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0 };
+
+  std::string res;
+  for (bool i : dash) {
+    if (i) res += "-";
+    res += v[dist(rng)];
+    res += v[dist(rng)];
+  }
+  return res;
+}
 int main(int argc, char** argv){
-
     if (argc == 2 && strcmp(argv[1], "--replr") == 0){
         // replr mode
-        auto runtime = makeHermesRuntime();
 
         // get fuzzer arguments
         char helo[] = "HELO";
@@ -126,8 +144,17 @@ int main(int argc, char** argv){
           printf("Invalid response from parent\n");
           exit(-1);
         }
+        auto uuid = generateUUID();
+      std::ofstream myfile;
+      myfile.open("out7/" + uuid, std::ios_base::app);
+
         while (true){
-            size_t script_size = 0;
+          auto runtime = makeHermesRuntime(::hermes::vm::RuntimeConfig::Builder()
+                                               .withES6Proxy(true)
+                                               .withES6Intl(true).withES6Symbol(true).withEnableGenerator(true).withEnableHermesInternal(true).withEnableJIT(true)
+                                               .build());
+
+          size_t script_size = 0;
             unsigned action;
             CHECK(read(REPRL_CRFD, &action, 4) == 4);
             if (action == 'cexe') {
@@ -151,18 +178,23 @@ int main(int argc, char** argv){
             script_src[script_size] = '\0';
             std::string code(script_src);
             free(script_src);
-            bool exceptionThrew(false);
+          myfile << code << "\n";
+
+          fprintf(stderr, "%s\n", uuid.c_str());
+
+          bool exceptionThrew(false);
             try {
               runtime->evaluateJavaScript(std::make_unique<StringBuffer>(code), "");
             } catch (const JSIException &e) {
               exceptionThrew = true;
             }
             fflush(stdout);
-            fflush(stderr);
             auto status = ((exceptionThrew ? 1 : 0) & 0xff) << 8;
             CHECK(write(REPRL_CWFD, &status, 4) == 4);
             __sanitizer_cov_reset_edgeguards();
         }
+      myfile.close();
+
 
     } else {
         // peacefully quit

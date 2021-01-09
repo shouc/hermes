@@ -52,21 +52,21 @@ static const int kHistoryMaxEntries = 500;
 using namespace hermes;
 
 static llvh::cl::opt<std::string> PromptString(
-    "prompt",
-    llvh::cl::init(">> "),
-    llvh::cl::desc("Prompt string for the REPL."));
+        "prompt",
+        llvh::cl::init(">> "),
+        llvh::cl::desc("Prompt string for the REPL."));
 
 static llvh::cl::opt<std::string> Prompt2String(
-    "prompt2",
-    llvh::cl::init("...  "),
-    llvh::cl::desc("Prompt string for continuation lines in the REPL."));
+        "prompt2",
+        llvh::cl::init("...  "),
+        llvh::cl::desc("Prompt string for continuation lines in the REPL."));
 
 namespace {
-enum class ReadResult {
-  SUCCESS,
-  FAILURE,
-  INTERRUPT,
-};
+    enum class ReadResult {
+        SUCCESS,
+        FAILURE,
+        INTERRUPT,
+    };
 }
 
 /// Print the prompt \p prompt and read a line from stdin with editing, storing
@@ -102,59 +102,59 @@ static struct sigaction oldAction;
 /// Handler for SIGINT in readline.
 /// Clears the signal handler and longjmps to early return from readInputLine.
 static void handleSignal(int sig) {
-  if (sig == SIGINT) {
-    struct sigaction action;
-    sigemptyset(&action.sa_mask);
-    action.sa_flags = 0;
-    action.sa_handler = oldAction.sa_handler;
-    ::sigaction(SIGINT, &action, &oldAction);
-    ::longjmp(readlineJmpBuf, 1);
-  }
+    if (sig == SIGINT) {
+        struct sigaction action;
+        sigemptyset(&action.sa_mask);
+        action.sa_flags = 0;
+        action.sa_handler = oldAction.sa_handler;
+        ::sigaction(SIGINT, &action, &oldAction);
+        ::longjmp(readlineJmpBuf, 1);
+    }
 }
 
 static ReadResult readInputLine(const char *prompt, std::string &line) {
 #ifndef __EMSCRIPTEN__
-  struct sigaction action;
-  sigemptyset(&action.sa_mask);
-  action.sa_flags = 0;
+    struct sigaction action;
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = 0;
 
-  if (setjmp(readlineJmpBuf) != 0) {
-    return ReadResult::INTERRUPT;
-  }
+    if (setjmp(readlineJmpBuf) != 0) {
+        return ReadResult::INTERRUPT;
+    }
 
-  action.sa_handler = handleSignal;
-  ::sigaction(SIGINT, &action, &oldAction);
-
-#if HAVE_LIBREADLINE
-  if (oscompat::isatty(STDIN_FILENO)) {
-    char *rl = ::readline(prompt);
-    action.sa_handler = oldAction.sa_handler;
+    action.sa_handler = handleSignal;
     ::sigaction(SIGINT, &action, &oldAction);
 
-    if (!rl)
-      return ReadResult::FAILURE;
-    line.append(rl);
-    ::add_history(rl);
-    ::free(rl);
-    return ReadResult::SUCCESS;
-  }
+#if HAVE_LIBREADLINE
+    if (oscompat::isatty(STDIN_FILENO)) {
+        char *rl = ::readline(prompt);
+        action.sa_handler = oldAction.sa_handler;
+        ::sigaction(SIGINT, &action, &oldAction);
+
+        if (!rl)
+            return ReadResult::FAILURE;
+        line.append(rl);
+        ::add_history(rl);
+        ::free(rl);
+        return ReadResult::SUCCESS;
+    }
 #endif
 #else
-  // Avoid unused function warnings.
+    // Avoid unused function warnings.
   (void)handleSignal;
 #endif
-  llvh::outs() << prompt;
-  std::string current{};
-  bool success = !!std::getline(std::cin, current);
+    llvh::outs() << prompt;
+    std::string current{};
+    bool success = !!std::getline(std::cin, current);
 #ifndef __EMSCRIPTEN__
-  action.sa_handler = oldAction.sa_handler;
-  ::sigaction(SIGINT, &action, &oldAction);
+    action.sa_handler = oldAction.sa_handler;
+    ::sigaction(SIGINT, &action, &oldAction);
 #endif
-  if (!success) {
-    return ReadResult::FAILURE;
-  }
-  line.append(current);
-  return ReadResult::SUCCESS;
+    if (!success) {
+        return ReadResult::FAILURE;
+    }
+    line.append(current);
+    return ReadResult::SUCCESS;
 }
 #endif
 
@@ -164,306 +164,312 @@ static ReadResult readInputLine(const char *prompt, std::string &line) {
 /// are actually valid.
 /// Otherwise, simply returns false, and the line is fed as-is to eval().
 static bool needsAnotherLine(llvh::StringRef input) {
-  SourceErrorManager sm;
-  SourceErrorManager::SaveAndSuppressMessages suppress(&sm);
-  hermes::BumpPtrAllocator allocator{};
-  parser::JSLexer lexer(input, sm, allocator, nullptr, false);
+    SourceErrorManager sm;
+    SourceErrorManager::SaveAndSuppressMessages suppress(&sm);
+    hermes::BumpPtrAllocator allocator{};
+    parser::JSLexer lexer(input, sm, allocator, nullptr, false);
 
-  std::stack<parser::TokenKind> stack{};
+    std::stack<parser::TokenKind> stack{};
 
-  if (input.empty()) {
-    return false;
-  }
-
-  if (input.back() == '\\') {
-    return true;
-  }
-
-  // Given a right delimiter token kind, get the corresponding left one.
-  auto getLeft = [](const parser::TokenKind kind) {
-    switch (kind) {
-      case parser::TokenKind::r_brace:
-        return parser::TokenKind::l_brace;
-      case parser::TokenKind::r_paren:
-        return parser::TokenKind::l_paren;
-      case parser::TokenKind::r_square:
-        return parser::TokenKind::l_square;
-      default:
-        llvm_unreachable("getLeft executed with unsupported kind");
-    }
-  };
-
-  // Look at the previous token to see if the next token could possibly be the
-  // beginning of a regular expression.
-  // https://github.com/mikesamuel/es5-lexer/blob/master/src/guess_is_regexp.js
-  auto isRegexPossible = [](OptValue<parser::TokenKind> previousTokenKind) {
-    if (!previousTokenKind) {
-      return true;
-    }
-    switch (*previousTokenKind) {
-      case parser::TokenKind::rw_break:
-      case parser::TokenKind::rw_case:
-      case parser::TokenKind::rw_continue:
-      case parser::TokenKind::rw_delete:
-      case parser::TokenKind::rw_do:
-      case parser::TokenKind::rw_else:
-      case parser::TokenKind::rw_finally:
-      case parser::TokenKind::rw_in:
-      case parser::TokenKind::rw_instanceof:
-      case parser::TokenKind::rw_return:
-      case parser::TokenKind::rw_throw:
-      case parser::TokenKind::rw_try:
-      case parser::TokenKind::rw_typeof:
-      case parser::TokenKind::rw_void:
-      case parser::TokenKind::plus:
-      case parser::TokenKind::minus:
-      case parser::TokenKind::period:
-      case parser::TokenKind::slash:
-      case parser::TokenKind::comma:
-      case parser::TokenKind::star:
-      case parser::TokenKind::exclaim:
-      case parser::TokenKind::percent:
-      case parser::TokenKind::amp:
-      case parser::TokenKind::l_paren:
-      case parser::TokenKind::colon:
-      case parser::TokenKind::semi:
-      case parser::TokenKind::less:
-      case parser::TokenKind::equal:
-      case parser::TokenKind::greater:
-      case parser::TokenKind::question:
-      case parser::TokenKind::l_square:
-      case parser::TokenKind::caret:
-      case parser::TokenKind::l_brace:
-      case parser::TokenKind::pipe:
-      case parser::TokenKind::r_brace:
-      case parser::TokenKind::tilde:
-        return true;
-      default:
+    if (input.empty()) {
         return false;
     }
-  };
 
-  OptValue<parser::TokenKind> previousTokenKind;
-
-  // Use AllowRegExp when a regular expression is possible and use AllowDiv
-  // otherwise so that division is correctly parsed.
-  while (const parser::Token *token = lexer.advance(
-             isRegexPossible(previousTokenKind)
-                 ? parser::JSLexer::GrammarContext::AllowRegExp
-                 : parser::JSLexer::GrammarContext::AllowDiv)) {
-    if (token->getKind() == parser::TokenKind::eof) {
-      break;
+    if (input.back() == '\\') {
+        return true;
     }
-    switch (token->getKind()) {
-      case parser::TokenKind::l_brace:
-      case parser::TokenKind::l_paren:
-      case parser::TokenKind::l_square:
-        // Push any left side delimiters.
-        stack.push(token->getKind());
-        break;
-      case parser::TokenKind::r_brace:
-      case parser::TokenKind::r_paren:
-      case parser::TokenKind::r_square: {
-        // Try to match the right delimiter, and if it can't be matched,
-        // the failure is unrecoverable.
-        auto left = getLeft(token->getKind());
-        if (!stack.empty() && stack.top() == left) {
-          // Matched the delimiter, pop it off and continue.
-          stack.pop();
-        } else {
-          // Failed to match, so we can't be recoverable.
-          return false;
+
+    // Given a right delimiter token kind, get the corresponding left one.
+    auto getLeft = [](const parser::TokenKind kind) {
+        switch (kind) {
+            case parser::TokenKind::r_brace:
+                return parser::TokenKind::l_brace;
+            case parser::TokenKind::r_paren:
+                return parser::TokenKind::l_paren;
+            case parser::TokenKind::r_square:
+                return parser::TokenKind::l_square;
+            default:
+                llvm_unreachable("getLeft executed with unsupported kind");
         }
-        break;
-      }
-      default:
-        // Do nothing for the other tokens.
-        break;
-    }
-    previousTokenKind = token->getKind();
-  }
+    };
 
-  // If the stack is empty, then we can't recover from the error,
-  // because there was some other problem besides mismatched delimiters.
-  // TODO: Handle other classes of recoverable errors.
-  return !stack.empty();
+    // Look at the previous token to see if the next token could possibly be the
+    // beginning of a regular expression.
+    // https://github.com/mikesamuel/es5-lexer/blob/master/src/guess_is_regexp.js
+    auto isRegexPossible = [](OptValue<parser::TokenKind> previousTokenKind) {
+        if (!previousTokenKind) {
+            return true;
+        }
+        switch (*previousTokenKind) {
+            case parser::TokenKind::rw_break:
+            case parser::TokenKind::rw_case:
+            case parser::TokenKind::rw_continue:
+            case parser::TokenKind::rw_delete:
+            case parser::TokenKind::rw_do:
+            case parser::TokenKind::rw_else:
+            case parser::TokenKind::rw_finally:
+            case parser::TokenKind::rw_in:
+            case parser::TokenKind::rw_instanceof:
+            case parser::TokenKind::rw_return:
+            case parser::TokenKind::rw_throw:
+            case parser::TokenKind::rw_try:
+            case parser::TokenKind::rw_typeof:
+            case parser::TokenKind::rw_void:
+            case parser::TokenKind::plus:
+            case parser::TokenKind::minus:
+            case parser::TokenKind::period:
+            case parser::TokenKind::slash:
+            case parser::TokenKind::comma:
+            case parser::TokenKind::star:
+            case parser::TokenKind::exclaim:
+            case parser::TokenKind::percent:
+            case parser::TokenKind::amp:
+            case parser::TokenKind::l_paren:
+            case parser::TokenKind::colon:
+            case parser::TokenKind::semi:
+            case parser::TokenKind::less:
+            case parser::TokenKind::equal:
+            case parser::TokenKind::greater:
+            case parser::TokenKind::question:
+            case parser::TokenKind::l_square:
+            case parser::TokenKind::caret:
+            case parser::TokenKind::l_brace:
+            case parser::TokenKind::pipe:
+            case parser::TokenKind::r_brace:
+            case parser::TokenKind::tilde:
+                return true;
+            default:
+                return false;
+        }
+    };
+
+    OptValue<parser::TokenKind> previousTokenKind;
+
+    // Use AllowRegExp when a regular expression is possible and use AllowDiv
+    // otherwise so that division is correctly parsed.
+    while (const parser::Token *token = lexer.advance(
+            isRegexPossible(previousTokenKind)
+            ? parser::JSLexer::GrammarContext::AllowRegExp
+            : parser::JSLexer::GrammarContext::AllowDiv)) {
+        if (token->getKind() == parser::TokenKind::eof) {
+            break;
+        }
+        switch (token->getKind()) {
+            case parser::TokenKind::l_brace:
+            case parser::TokenKind::l_paren:
+            case parser::TokenKind::l_square:
+                // Push any left side delimiters.
+                stack.push(token->getKind());
+                break;
+            case parser::TokenKind::r_brace:
+            case parser::TokenKind::r_paren:
+            case parser::TokenKind::r_square: {
+                // Try to match the right delimiter, and if it can't be matched,
+                // the failure is unrecoverable.
+                auto left = getLeft(token->getKind());
+                if (!stack.empty() && stack.top() == left) {
+                    // Matched the delimiter, pop it off and continue.
+                    stack.pop();
+                } else {
+                    // Failed to match, so we can't be recoverable.
+                    return false;
+                }
+                break;
+            }
+            default:
+                // Do nothing for the other tokens.
+                break;
+        }
+        previousTokenKind = token->getKind();
+    }
+
+    // If the stack is empty, then we can't recover from the error,
+    // because there was some other problem besides mismatched delimiters.
+    // TODO: Handle other classes of recoverable errors.
+    return !stack.empty();
 }
 
 #if HAVE_LIBREADLINE
 // Load history file or create it
 static std::error_code loadHistoryFile(llvh::SmallString<128> &historyFile) {
-  if (!llvh::sys::path::home_directory(historyFile)) {
-    // Use ENOENT here since it could not found a home directory
-    return std::error_code(ENOENT, std::system_category());
-  }
+    if (!llvh::sys::path::home_directory(historyFile)) {
+        // Use ENOENT here since it could not found a home directory
+        return std::error_code(ENOENT, std::system_category());
+    }
 
-  llvh::sys::path::append(historyFile, kHistoryFileBaseName);
+    llvh::sys::path::append(historyFile, kHistoryFileBaseName);
 
-  auto err = ::read_history(historyFile.c_str());
-  if (err != 0) {
-    // Return a error_code object from a errno enum
-    return std::error_code(err, std::system_category());
-  }
+    auto err = ::read_history(historyFile.c_str());
+    if (err != 0) {
+        // Return a error_code object from a errno enum
+        return std::error_code(err, std::system_category());
+    }
 
-  return std::error_code();
+    return std::error_code();
 }
 #endif
 
 // This is the vm driver.
 int repl(const vm::RuntimeConfig &config) {
-  auto runtime = vm::Runtime::create(config);
+    auto runtime = vm::Runtime::create(config);
 
-  vm::GCScope gcScope(runtime.get());
-  ConsoleHostContext ctx{runtime.get()};
-  installConsoleBindings(runtime.get(), ctx);
+    vm::GCScope gcScope(runtime.get());
+    ConsoleHostContext ctx{runtime.get()};
+    installConsoleBindings(runtime.get(), ctx);
 
-  std::string code;
-  code.reserve(256);
+    std::string code;
+    code.reserve(256);
 
-  auto global = runtime->getGlobal();
-  auto propRes = vm::JSObject::getNamed_RJS(
-      global, runtime.get(), vm::Predefined::getSymbolID(vm::Predefined::eval));
-  if (propRes == vm::ExecutionStatus::EXCEPTION) {
-    runtime->printException(
-        llvh::outs(), runtime->makeHandle(runtime->getThrownValue()));
-    return 1;
-  }
-  auto evalFn = runtime->makeHandle<vm::Callable>(std::move(*propRes));
+    auto global = runtime->getGlobal();
+    auto propRes = vm::JSObject::getNamed_RJS(
+            global, runtime.get(), vm::Predefined::getSymbolID(vm::Predefined::eval));
+    if (propRes == vm::ExecutionStatus::EXCEPTION) {
+        runtime->printException(
+                llvh::outs(), runtime->makeHandle(runtime->getThrownValue()));
+        return 1;
+    }
+    auto evalFn = runtime->makeHandle<vm::Callable>(std::move(*propRes));
 
-  llvh::StringRef evaluateLineString =
+    llvh::StringRef evaluateLineString =
 #include "evaluate-line.js"
-      ;
-  bool hasColors = oscompat::should_color(STDOUT_FILENO);
+    ;
+    bool hasColors = oscompat::should_color(STDOUT_FILENO);
 
-  auto callRes = evalFn->executeCall1(
-      evalFn,
-      runtime.get(),
-      global,
-      vm::StringPrimitive::createNoThrow(runtime.get(), evaluateLineString)
-          .getHermesValue());
-  if (callRes == vm::ExecutionStatus::EXCEPTION) {
-    llvh::raw_ostream &errs = hasColors
-        ? llvh::errs().changeColor(llvh::raw_ostream::Colors::RED)
-        : llvh::errs();
-    llvh::raw_ostream &outs = hasColors
-        ? llvh::outs().changeColor(llvh::raw_ostream::Colors::RED)
-        : llvh::outs();
-    errs << "Unable to get REPL util function: evaluateLine.\n";
-    runtime->printException(
-        outs, runtime->makeHandle(runtime->getThrownValue()));
-    return 1;
-  }
-  auto evaluateLineFn =
-      runtime->makeHandle<vm::JSFunction>(std::move(*callRes));
+    auto callRes = evalFn->executeCall1(
+            evalFn,
+            runtime.get(),
+            global,
+            vm::StringPrimitive::createNoThrow(runtime.get(), evaluateLineString)
+                    .getHermesValue());
+    if (callRes == vm::ExecutionStatus::EXCEPTION) {
+        llvh::raw_ostream &errs = hasColors
+                                  ? llvh::errs().changeColor(llvh::raw_ostream::Colors::RED)
+                                  : llvh::errs();
+        llvh::raw_ostream &outs = hasColors
+                                  ? llvh::outs().changeColor(llvh::raw_ostream::Colors::RED)
+                                  : llvh::outs();
+        errs << "Unable to get REPL util function: evaluateLine.\n";
+        runtime->printException(
+                outs, runtime->makeHandle(runtime->getThrownValue()));
+        return 1;
+    }
+    auto evaluateLineFn =
+            runtime->makeHandle<vm::JSFunction>(std::move(*callRes));
 
-  runtime->getHeap().runtimeWillExecute();
+    runtime->getHeap().runtimeWillExecute();
 
 #if HAVE_LIBREADLINE
-  llvh::SmallString<128> historyFile{};
-  auto historyErr = loadHistoryFile(historyFile);
-  if (historyErr && historyErr.value() != ENOENT) {
-    llvh::errs() << "Could not load history file: " << historyErr.message()
-                 << '\n';
-  }
+    llvh::SmallString<128> historyFile{};
+    auto historyErr = loadHistoryFile(historyFile);
+    if (historyErr && historyErr.value() != ENOENT) {
+        llvh::errs() << "Could not load history file: " << historyErr.message()
+                     << '\n';
+    }
 #endif
 
-  vm::MutableHandle<> resHandle{runtime.get()};
-  // SetUnbuffered because there is no explicit flush after prompt (>>).
-  // There is also no explicitly flush at end of line. (An automatic flush
-  // mechanism is not guaranteed to be present, from my experiment on Windows)
-  llvh::outs().SetUnbuffered();
-  while (true) {
-    // Main loop
-    auto readResult = readInputLine(
-        code.empty() ? PromptString.c_str() : Prompt2String.c_str(), code);
-    if (readResult == ReadResult::FAILURE ||
-        (readResult == ReadResult::INTERRUPT && code.empty())) {
-      // EOF or user exit on non-continuation line.
-      llvh::outs() << '\n';
+    vm::MutableHandle<> resHandle{runtime.get()};
+    // SetUnbuffered because there is no explicit flush after prompt (>>).
+    // There is also no explicitly flush at end of line. (An automatic flush
+    // mechanism is not guaranteed to be present, from my experiment on Windows)
+    llvh::outs().SetUnbuffered();
+    while (true) {
+        // Main loop
+        auto readResult = readInputLine(
+                code.empty() ? PromptString.c_str() : Prompt2String.c_str(), code);
+        if (readResult == ReadResult::FAILURE ||
+            (readResult == ReadResult::INTERRUPT && code.empty())) {
+            // EOF or user exit on non-continuation line.
+            llvh::outs() << '\n';
 #if HAVE_LIBREADLINE
-      if (history_length > 0) {
-        ::stifle_history(kHistoryMaxEntries);
-        ::write_history(historyFile.c_str());
-      }
+            if (history_length > 0) {
+                ::stifle_history(kHistoryMaxEntries);
+                ::write_history(historyFile.c_str());
+            }
 #endif
-      return 0;
-    }
-
-    if (readResult == ReadResult::INTERRUPT) {
-      // Interrupt the continuation line.
-      code.clear();
-      llvh::outs() << '\n';
-      continue;
-    }
-
-    if (needsAnotherLine(code)) {
-      code += '\n';
-      continue;
-    }
-
-    // Ensure we don't keep accumulating handles.
-    vm::GCScopeMarkerRAII gcMarker{runtime.get()};
-
-    bool threwException = false;
-
-    if ((callRes = evaluateLineFn->executeCall2(
-             evaluateLineFn,
-             runtime.get(),
-             global,
-             vm::StringPrimitive::createNoThrow(runtime.get(), code)
-                 .getHermesValue(),
-             vm::HermesValue::encodeBoolValue(hasColors))) ==
-        vm::ExecutionStatus::EXCEPTION) {
-      runtime->printException(
-          hasColors ? llvh::outs().changeColor(llvh::raw_ostream::Colors::RED)
-                    : llvh::outs(),
-          runtime->makeHandle(runtime->getThrownValue()));
-      llvh::outs().resetColor();
-      code.clear();
-      threwException = true;
-    } else {
-      resHandle = std::move(*callRes);
-    }
-
-    if (!ctx.jobsEmpty()) {
-      // Run the jobs until there are no more.
-      vm::MutableHandle<vm::Callable> job{runtime.get()};
-      while (auto optJob = ctx.dequeueJob()) {
-        job = std::move(*optJob);
-        auto jobCallRes = vm::Callable::executeCall0(
-            job, runtime.get(), vm::Runtime::getUndefinedValue(), false);
-        if (LLVM_UNLIKELY(jobCallRes == vm::ExecutionStatus::EXCEPTION)) {
-          threwException = true;
-          runtime->printException(
-              hasColors
-                  ? llvh::outs().changeColor(llvh::raw_ostream::Colors::RED)
-                  : llvh::outs(),
-              runtime->makeHandle(runtime->getThrownValue()));
-          llvh::outs().resetColor();
-          code.clear();
+            return 0;
         }
+        printf("%s", code.c_str());
+      if (code.find("FUZZILLI") != std::string::npos){
+        *((int*)0x41414141) = 0x1337;
+
+        printf("aaaaa%s", code.c_str());
       }
+
+        if (readResult == ReadResult::INTERRUPT) {
+            // Interrupt the continuation line.
+            code.clear();
+            llvh::outs() << '\n';
+            continue;
+        }
+
+        if (needsAnotherLine(code)) {
+            code += '\n';
+            continue;
+        }
+
+        // Ensure we don't keep accumulating handles.
+        vm::GCScopeMarkerRAII gcMarker{runtime.get()};
+
+        bool threwException = false;
+
+        if ((callRes = evaluateLineFn->executeCall2(
+                evaluateLineFn,
+                runtime.get(),
+                global,
+                vm::StringPrimitive::createNoThrow(runtime.get(), code)
+                        .getHermesValue(),
+                vm::HermesValue::encodeBoolValue(hasColors))) ==
+            vm::ExecutionStatus::EXCEPTION) {
+            runtime->printException(
+                    hasColors ? llvh::outs().changeColor(llvh::raw_ostream::Colors::RED)
+                              : llvh::outs(),
+                    runtime->makeHandle(runtime->getThrownValue()));
+            llvh::outs().resetColor();
+            code.clear();
+            threwException = true;
+        } else {
+            resHandle = std::move(*callRes);
+        }
+
+        if (!ctx.jobsEmpty()) {
+            // Run the jobs until there are no more.
+            vm::MutableHandle<vm::Callable> job{runtime.get()};
+            while (auto optJob = ctx.dequeueJob()) {
+                job = std::move(*optJob);
+                auto jobCallRes = vm::Callable::executeCall0(
+                        job, runtime.get(), vm::Runtime::getUndefinedValue(), false);
+                if (LLVM_UNLIKELY(jobCallRes == vm::ExecutionStatus::EXCEPTION)) {
+                    threwException = true;
+                    runtime->printException(
+                            hasColors
+                            ? llvh::outs().changeColor(llvh::raw_ostream::Colors::RED)
+                            : llvh::outs(),
+                            runtime->makeHandle(runtime->getThrownValue()));
+                    llvh::outs().resetColor();
+                    code.clear();
+                }
+            }
+        }
+
+        if (threwException) {
+            continue;
+        }
+
+        if (resHandle->isUndefined()) {
+            code.clear();
+            continue;
+        }
+
+        // Operator resolution in the vm namespace.
+        vm::SmallU16String<32> tmp;
+        vm::operator<<(
+                llvh::outs(),
+                vm::StringPrimitive::createStringView(
+                        runtime.get(), vm::Handle<vm::StringPrimitive>::vmcast(resHandle))
+                        .getUTF16Ref(tmp))
+                << "\n";
+        code.clear();
     }
 
-    if (threwException) {
-      continue;
-    }
-
-    if (resHandle->isUndefined()) {
-      code.clear();
-      continue;
-    }
-
-    // Operator resolution in the vm namespace.
-    vm::SmallU16String<32> tmp;
-    vm::operator<<(
-        llvh::outs(),
-        vm::StringPrimitive::createStringView(
-            runtime.get(), vm::Handle<vm::StringPrimitive>::vmcast(resHandle))
-            .getUTF16Ref(tmp))
-        << "\n";
-    code.clear();
-  }
-
-  return 0;
+    return 0;
 }

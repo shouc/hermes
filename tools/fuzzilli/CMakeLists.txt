@@ -13,9 +13,19 @@ if(HERMES_ENABLE_FUZZING)
           fuzzilli.cpp
           ${ALL_HEADER_FILES}
           )
+  add_hermes_tool(fuzzilli_test
+          fuzzilli_test.cpp
+          ${ALL_HEADER_FILES}
+          )
 
   target_include_directories(fuzzilli PRIVATE ${HERMES_SOURCE_DIR}/API)
+  target_include_directories(fuzzilli_test PRIVATE ${HERMES_SOURCE_DIR}/API)
   target_link_libraries(fuzzilli
+          PRIVATE
+          hermesapi
+          rt
+          )
+  target_link_libraries(fuzzilli_test
           PRIVATE
           hermesapi
           )

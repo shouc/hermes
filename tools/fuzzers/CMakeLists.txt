@@ -9,7 +9,9 @@ if(HERMES_ENABLE_FUZZING)
     set(HERMES_ENABLE_EH ON)
 
     add_hermes_tool(fuzzer-jsi-entry
-      fuzzer-jsi-entry.cpp
+      fuzzer-json.cpp
+            json.pb.cc
+            jsonConv.cpp
       ${ALL_HEADER_FILES}
     )
 
@@ -17,8 +19,13 @@ if(HERMES_ENABLE_FUZZING)
     append(${HERMES_FUZZING_FLAG} CMAKE_EXE_LINKER_FLAGS)
 
     target_include_directories(fuzzer-jsi-entry PRIVATE ${HERMES_SOURCE_DIR}/API)
+    target_include_directories(fuzzer-jsi-entry PRIVATE /usr/local/include/libprotobuf-mutator)
     target_link_libraries(fuzzer-jsi-entry
       PRIVATE
         hermesapi
+            protobuf-mutator-libfuzzer
+
+            protobuf-mutator
+            protobuf
     )
 endif()

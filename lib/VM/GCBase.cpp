@@ -821,6 +821,9 @@ void GCBase::oom(std::error_code reason) {
   throw JSOutOfMemoryError(
       std::string(detailBuffer) + "\ncall stack:\n" +
       gcCallbacks_->getCallStackNoAlloc());
+#elif HERMES_ENABLE_FUZZILLI
+  // We don't want the program to trigger OOM from sanitizer
+  exit(-1);
 #else
   oomDetail(reason);
   // Run finalizeAll, to avoid reporting an ASAN leak on native memory held by

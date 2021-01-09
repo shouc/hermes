@@ -37,6 +37,7 @@ target_link_libraries(hermes
   hermesSourceMap
   hermesSupport
   dtoa
+  rt
   hermesInstrumentation
   ${CORE_FOUNDATION}
   ${LIBREADLINE}
